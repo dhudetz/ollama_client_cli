@@ -137,7 +137,7 @@ def draw_header(win, width: int) -> None:
         win.clear()
         win.attron(curses.color_pair(3))
         win.addstr(0, 0, "╭" + "─" * (safe_width - 2) + "╮")
-        title = " Chatting with Ollama 🧠 "
+        title = " Chatting with Ollama "
         win.addstr(1, 0, "│" + title.center(safe_width - 2) + "│")
         win.addstr(2, 0, "╰" + "─" * (safe_width - 2) + "╯")
         win.attroff(curses.color_pair(3))
