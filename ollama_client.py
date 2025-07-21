@@ -99,6 +99,15 @@ class ChatInterface:
         self.assistant_name = re.sub(r"\d", "", client.model).capitalize()
         self.messages = []
         self.abort_stream = threading.Event()
+        self._initialize_chat() # Initial call to set up
+
+    def _initialize_chat(self):
+        """Resets the chat history and related states."""
+        self.messages = []
+        self.client.chat_history = [] # Clear client's history as well
+        self.abort_stream = threading.Event()
+        self.stdscr.clear() # Clear the entire screen
+        self.draw_layout() # Redraw the layout
 
     def run(self):
         curses.curs_set(1)
@@ -118,7 +127,10 @@ class ChatInterface:
             if user_input.strip().lower() in {"exit", "quit", ":q", ":wq"}:
                 self.show_bye()
                 return
-
+            elif user_input.strip().lower() == "clear":
+                self._initialize_chat()
+                continue # Skip processing as a regular message
+            
             self.messages.append(("user", user_input))
             self.abort_stream.set()  # cancel any prior stream
             self.abort_stream = threading.Event()  # reset abort event
