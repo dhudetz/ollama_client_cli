@@ -221,4 +221,3 @@ def start_chat_interface():
 if __name__ == "__main__":
     signal.signal(signal.SIGWINCH, lambda n, f: None)  # prevent resize from crashing
     start_chat_interface()
-
