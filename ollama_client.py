@@ -273,35 +273,47 @@ class ChatInterface:
             user_input: The user's input that triggered this response.
         """
         self.messages.append(("assistant", "")) # Add a placeholder for the assistant's response
-        stream = self.client.chat(user_input)
-        frame = 0
-        bot_response = ""
-        self.history_win.nodelay(True) # Make getch non-blocking
+        try:
+            stream = self.client.chat(user_input)
+            frame = 0
+            bot_response = ""
+            self.history_win.nodelay(True) # Make getch non-blocking
 
-        if hasattr(stream, '__iter__') and not isinstance(stream, str):
-            for chunk in stream:
-                if self.abort_stream.is_set():
-                    # If the stream was aborted (e.g., new input), stop processing
-                    return
-                try:
-                    ch = self.history_win.getch() # Check for user input during streaming
-                    if ch != -1:
-                        # If a key was pressed, interrupt the stream
-                        self.abort_stream.set()
-                        curses.ungetch(ch) # Put the character back into the input buffer
-                        self.messages[-1] = ("assistant", bot_response + "\n[interrupted]")
+            if hasattr(stream, '__iter__') and not isinstance(stream, str):
+                for chunk in stream:
+                    if self.abort_stream.is_set():
+                        # If the stream was aborted (e.g., new input), stop processing
                         return
-                except curses.error:
-                    # No character available, continue streaming
-                    pass
-                bot_response += chunk
-                self.messages[-1] = ("assistant", bot_response) # Update the last message
-                self.redraw_history(frame)
-                frame += 1
-        else:
-            # If not streaming (e.g., an error or direct non-streaming response)
-            self.messages[-1] = ("assistant", stream)
-            self.redraw_history()
+                    try:
+                        ch = self.history_win.getch() # Check for user input during streaming
+                        if ch != -1:
+                            # If a key was pressed, interrupt the stream
+                            self.abort_stream.set()
+                            curses.ungetch(ch) # Put the character back into the input buffer
+                            self.messages[-1] = ("assistant", bot_response + "\n[interrupted]")
+                            return
+                    except curses.error:
+                        # No character available, continue streaming
+                        pass
+                    bot_response += chunk
+                    self.messages[-1] = ("assistant", bot_response) # Update the last message
+                    self.redraw_history(frame)
+                    frame += 1
+            else:
+                # If not streaming (e.g., an error or direct non-streaming response)
+                self.messages[-1] = ("assistant", stream)
+                self.redraw_history()
+        except RuntimeError as e:
+            if "Failed to establish a new connection" in str(e):
+                # Handle connection refused error
+                self.stdscr.clear()
+                msg = "No local ollama server found"
+                y, x = self.stdscr.getmaxyx()
+                self.stdscr.addstr(y // 2, (x - len(msg)) // 2, msg, curses.color_pair(3) | curses.A_BOLD)
+                self.stdscr.refresh()
+                time.sleep(1)
+            else:
+                raise
 
     def show_bye(self):
         """Displays a 'bye' message before exiting the application."""
